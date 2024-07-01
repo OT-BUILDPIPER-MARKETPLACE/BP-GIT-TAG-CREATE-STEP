@@ -19,17 +19,6 @@ fi
 GIT_URL=$(getGitRepo)
 GIT_BRANCH=$(getGitBranch)
 
-if [[ -z "$GIT_URL" ]]; then
-  logErrorMessage "Please provide the GIT_URL."
-  exit 1
-fi
-
-if [[ -z "$GIT_BRANCH" ]]; then
-  logErrorMessage "Please provide the GIT_BRANCH."
-  exit 1
-fi
-
-
 # Extract the repository name
 REPO_NAME=$(basename "$GIT_URL" ".git")
 
@@ -69,5 +58,3 @@ cd $REPO_NAME
 # Navigate back to the parent directory
 cd ..
 echo "____ End https://$GIT_URL ____"
-
-
