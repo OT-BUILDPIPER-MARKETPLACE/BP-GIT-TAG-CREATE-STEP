@@ -10,22 +10,22 @@ source aws-functions.sh
 logInfoMessage "I'll create a Git tag for a branch if it doesn't exist."
 sleep $SLEEP_DURATION
 
-ENCRYPTED_CREDENTIAL_USERNAME=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_USERNAME")
-CREDENTIAL_USERNAME=$(getDecryptedCredential "$FERNET_KEY" "$ENCRYPTED_CREDENTIAL_USERNAME")
+# ENCRYPTED_CREDENTIAL_USERNAME=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_USERNAME")
+# CREDENTIAL_USERNAME=$(getDecryptedCredential "$FERNET_KEY" "$ENCRYPTED_CREDENTIAL_USERNAME")
 
 
-ENCRYPTED_CREDENTIAL_PASSWORD=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_PASSWORD")
-CREDENTIAL_PASSWORD=$(getDecryptedCredential "$FERNET_KEY" "$ENCRYPTED_CREDENTIAL_PASSWORD")
+# ENCRYPTED_CREDENTIAL_PASSWORD=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_PASSWORD")
+# CREDENTIAL_PASSWORD=$(getDecryptedCredential "$FERNET_KEY" "$ENCRYPTED_CREDENTIAL_PASSWORD")
 
 
 # Check if the branch name and tag name are provided
 if [[ -z "$TAG_NAME" ]]; then
-  logErrorMessage "Please provide the tag name."
+  logErrorMessage "Please provide the TAG_NAME."
   exit 1
 fi
 
-GIT_URL=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_URL")
-GIT_BRANCH=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_BRANCH")
+GIT_URL=$(getGitRepo)
+GIT_BRANCH=$(getGitBranch)
 
 # Extract the repository name
 REPO_NAME=$(basename "$GIT_URL" ".git")
