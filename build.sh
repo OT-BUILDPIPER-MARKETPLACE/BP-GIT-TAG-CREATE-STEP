@@ -60,7 +60,13 @@ cd $REPO_NAME
     # Push the tag to the remote repository
     git push origin "$TAG_NAME" > /dev/null 2>&1
 
-    logInfoMessage "Git tag $TAG_NAME pushed successfully to repository [$REPO_NAME]"
+    git push origin "$TAG_NAME" > /dev/null 2>&1
+    
+    if [ $? -eq 0 ]; then
+        logInfoMessage "Git tag $TAG_NAME pushed successfully to repository [$REPO_NAME]"
+    else
+        git push origin "$TAG_NAME"
+    fi
   fi
 
 # Navigate back to the parent directory
