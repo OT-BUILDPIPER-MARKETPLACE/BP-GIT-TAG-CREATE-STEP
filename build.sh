@@ -1,24 +1,19 @@
 #!/bin/bash
 
-# Import required functions
 source functions.sh
 source log-functions.sh
-source str-functions.sh
-source file-functions.sh
-source aws-functions.sh
 
 logInfoMessage "I'll create a Git tag for a branch if it doesn't exist."
-sleep $SLEEP_DURATION
 
-ENCRYPTED_CREDENTIAL_USERNAME=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_USERNAME")
-CREDENTIAL_USERNAME=$(getDecryptedCredential "$FERNET_KEY" "$ENCRYPTED_CREDENTIAL_USERNAME")
+if [ ! -d "/root/.ssh" ]; then
+  mkdir -p /root/.ssh || { logErrorMessage "Failed to create /root/.ssh directory"; exit 1; }
+  ssh-keygen -t rsa -b 4096 -f /root/.ssh/id_rsa -N "" > /dev/null 2>&1 || { logErrorMessage "Failed to generate SSH keys"; exit 1; }
+fi
 
+GIT_SSH_KEY=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_SSH_KEY")
+echo "$GIT_SSH_KEY" > /root/.ssh/id_ed25519
+chmod 600 /root/.ssh/id_ed25519
 
-ENCRYPTED_CREDENTIAL_PASSWORD=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_PASSWORD")
-CREDENTIAL_PASSWORD=$(getDecryptedCredential "$FERNET_KEY" "$ENCRYPTED_CREDENTIAL_PASSWORD")
-
-
-# Check if the branch name and tag name are provided
 if [[ -z "$TAG_NAME" ]]; then
   logErrorMessage "Please provide the tag name."
   exit 1
@@ -26,52 +21,39 @@ fi
 
 GIT_URL=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_URL")
 GIT_BRANCH=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_BRANCH")
-
-# Extract the repository name
 REPO_NAME=$(basename "$GIT_URL" ".git")
 
-echo "____ Start $GIT_URL ____"
-
-logInfoMessage "Received below arguments"
-logInfoMessage "Repositry: $REPO_NAME"
+logInfoMessage "____ Start $GIT_URL ____"
+logInfoMessage "Repository: $REPO_NAME"
 logInfoMessage "Branch: $GIT_BRANCH"
 logInfoMessage "Tag: $TAG_NAME"
 
-# Clone the repository if it doesn't exist
-if ! [[ -d "$REPO_NAME" ]]; then
-  GIT_URL=${GIT_URL/https:\/\//}
-  git clone https://${CREDENTIAL_USERNAME}:${CREDENTIAL_PASSWORD}@${GIT_URL} > /dev/null 2>&1
+cd /root || { logErrorMessage "Failed to change directory to /root"; exit 1; }
+if [ ! -d "$REPO_NAME" ]; then
+  GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone "$GIT_URL" > /dev/null 2>&1 || { logErrorMessage "Failed to clone repository $GIT_URL"; exit 1; }
 fi
 
-# Navigate to the repository directory
-cd $REPO_NAME
+cd "$REPO_NAME" || { logErrorMessage "Failed to change directory to $REPO_NAME"; exit 1; }
 
-# # Check out the branch
-  git checkout $GIT_BRANCH > /dev/null 2>&1
+git checkout "$GIT_BRANCH" > /dev/null 2>&1 || { logErrorMessage "Failed to checkout branch $GIT_BRANCH"; exit 1; }
 
-  if git tag -l "$TAG_NAME" | grep -q "$TAG_NAME"; then
-    logErrorMessage "Git tag $TAG_NAME already exists in repository [$REPO_NAME]"
-    exit 1
-  else
-    # Create the Git tag
-    git tag $TAG_NAME 
-    logInfoMessage "Git tag $TAG_NAME created successfully in repository [$REPO_NAME]"
+if git tag -l "$TAG_NAME" | grep -q "$TAG_NAME"; then
+  logErrorMessage "Git tag $TAG_NAME already exists in repository [$REPO_NAME]"
+  exit 1
+fi
 
-    # Push the tag to the remote repository
-    git push origin "$TAG_NAME" > /dev/null 2>&1
+git tag "$TAG_NAME" || { logErrorMessage "Failed to create Git tag $TAG_NAME"; exit 1; }
 
-    git push origin "$TAG_NAME" > /dev/null 2>&1
-    
-    if [ $? -eq 0 ]; then
-        logInfoMessage "Git tag $TAG_NAME pushed successfully to repository [$REPO_NAME]"
-    else
-        git push origin "$TAG_NAME"
-        logErrorMessage "Git tag $TAG_NAME failed pushed to repository [$REPO_NAME]"
-    fi
-  fi
+output=$(GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git push origin "$TAG_NAME" 2>&1)
 
-# Navigate back to the parent directory
-cd ..
-echo "____ End https://$GIT_URL ____"
+if [ $? -eq 0 ]; then
+  logInfoMessage "Git tag $TAG_NAME created and pushed successfully to repository [$REPO_NAME]"
+else
+  logErrorMessage "Failed to push Git tag $TAG_NAME: $output"
+  exit 1
+fi
 
+logInfoMessage "$output"
 
+logInfoMessage "Git tag $TAG_NAME created and pushed successfully to repository [$REPO_NAME]"
+logInfoMessage "____ End $GIT_URL ____"

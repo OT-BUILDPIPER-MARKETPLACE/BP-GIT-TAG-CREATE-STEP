@@ -13,3 +13,6 @@ git clone https://github.com/OT-BUILDPIPER-MARKETPLACE/BP-GIT-TAG-CREATE-STEP.gi
 git submodule init
 git submodule update
 docker build -t ot/git-tag-create:0.1 .
+
+git-tag-create:0.1
+git-tag-create:ssh-0.1
