@@ -66,6 +66,7 @@ cd $REPO_NAME
         logInfoMessage "Git tag $TAG_NAME pushed successfully to repository [$REPO_NAME]"
     else
         git push origin "$TAG_NAME"
+        logErrorMessage "Git tag $TAG_NAME failed pushed to repository [$REPO_NAME]"
     fi
   fi
 
