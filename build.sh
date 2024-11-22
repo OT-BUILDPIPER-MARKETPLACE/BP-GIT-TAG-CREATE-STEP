@@ -3,6 +3,8 @@
 source functions.sh
 source log-functions.sh
 
+sleep "$SLEEP_DURATION"
+
 logInfoMessage "I'll create a Git tag for a branch if it doesn't exist."
 
 if [ ! -d "/root/.ssh" ]; then
@@ -10,8 +12,10 @@ if [ ! -d "/root/.ssh" ]; then
   ssh-keygen -t rsa -b 4096 -f /root/.ssh/id_rsa -N "" > /dev/null 2>&1 || { logErrorMessage "Failed to generate SSH keys"; exit 1; }
 fi
 
-GIT_SSH_KEY=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_SSH_KEY")
-echo "$GIT_SSH_KEY" > /root/.ssh/id_ed25519
+ENCRYPTED_CREDENTIAL_SSH_KEY=$(getEncryptedCredential "$GIT_REPO" "GIT_INFO.GIT_SSH_KEY")
+CREDENTIAL_SSH_KEY=$(getDecryptedCredential "$FERNET_KEY" "$ENCRYPTED_CREDENTIAL_SSH_KEY")
+
+echo "$CREDENTIAL_SSH_KEY" > /root/.ssh/id_ed25519
 chmod 600 /root/.ssh/id_ed25519
 
 if [[ -z "$TAG_NAME" ]]; then
