@@ -1,0 +1,139 @@
+#!/bin/bash
+
+# -------------------------------
+# Debug mode toggle
+# -------------------------------
+if [[ "$DEBUG_MODE" == "true" ]]; then
+    set -x
+else
+    set +x
+fi
+
+# -------------------------------
+# Import required functions
+# -------------------------------
+
+source /opt/buildpiper/shell-functions/functions.sh
+source /opt/buildpiper/shell-functions/log-functions.sh
+source /opt/buildpiper/shell-functions/str-functions.sh
+source /opt/buildpiper/shell-functions/file-functions.sh
+source /opt/buildpiper/shell-functions/aws-functions.sh
+# -------------------------------
+# Function to auto-detect .git folder and fetch credentials
+# -------------------------------
+getGitCreds() {
+    logInfoMessage "Current working directory:"
+    pwd
+
+    logInfoMessage "Listing files in current directory:"
+    ls -la
+
+    logInfoMessage "Searching for .git directories (max depth 4):"
+    find "$(pwd)" -maxdepth 4 -type d -name ".git" || true
+
+    local git_dir
+    git_dir=$(find "$(pwd)" -type d -name ".git" | head -n 1)
+
+    if [[ -z "$git_dir" ]]; then
+        logErrorMessage "No .git directory found in current path"
+        return 1
+    fi
+
+    local git_config_file="$git_dir/config"
+
+    if [[ ! -f "$git_config_file" ]]; then
+        logErrorMessage "Git config not found at $git_config_file"
+        return 1
+    fi
+
+    local url
+    url=$(grep -A1 '\[remote "origin"\]' "$git_config_file" | grep 'url =' | awk '{print $3}')
+
+    if [[ -z "$url" ]]; then
+        logErrorMessage "Could not find remote URL in $git_config_file"
+        return 1
+    fi
+
+    # Mask URL before logging
+    logInfoMessage "Remote origin URL detected (masked)"
+
+    local creds_part
+    creds_part=$(echo "$url" | sed -n 's|https://\(.*\)@.*|\1|p')
+
+    if [[ -z "$creds_part" ]]; then
+        logErrorMessage "No embedded credentials found in Git URL"
+        return 1
+    fi
+
+    CREDENTIAL_USERNAME="${creds_part%%:*}"
+    CREDENTIAL_PASSWORD="${creds_part#*:}"
+
+    export CREDENTIAL_USERNAME
+    export CREDENTIAL_PASSWORD
+
+    return 0
+}
+
+# -------------------------------
+# Fetch Git credentials
+# -------------------------------
+getGitCreds
+
+# -------------------------------
+# Validate input
+# -------------------------------
+if [[ -z "$TAG_NAME" ]]; then
+    logErrorMessage "Please provide the TAG_NAME."
+    exit 1
+fi
+
+GIT_URL=$(getGitRepo)
+GIT_BRANCH=$(getGitBranch)
+REPO_NAME=$(basename "$GIT_URL" ".git")
+
+logInfoMessage "____ Start $GIT_URL ____"
+logInfoMessage "Repository: $REPO_NAME"
+logInfoMessage "Branch: $GIT_BRANCH"
+logInfoMessage "Tag: $TAG_NAME"
+
+# -------------------------------
+# Clone repository if missing
+# -------------------------------
+if ! [[ -d "$REPO_NAME" ]]; then
+    GIT_URL=${GIT_URL/https:\/\//}
+    if ! git clone "https://${CREDENTIAL_USERNAME}:${CREDENTIAL_PASSWORD}@${GIT_URL}" > /dev/null 2>&1; then
+        logErrorMessage "Failed to clone repository $GIT_URL"
+        exit 1
+    fi
+fi
+
+cd "$REPO_NAME" || { logErrorMessage "Failed to cd into $REPO_NAME"; exit 1; }
+
+# -------------------------------
+# Checkout branch
+# -------------------------------
+if ! git checkout "$GIT_BRANCH" > /dev/null 2>&1; then
+    logErrorMessage "Failed to checkout branch $GIT_BRANCH"
+    exit 1
+fi
+
+# -------------------------------
+# Create tag if it doesn't exist
+# -------------------------------
+if git tag -l "$TAG_NAME" | grep -q "$TAG_NAME"; then
+    logErrorMessage "Git tag $TAG_NAME already exists in repository [$REPO_NAME]"
+    exit 1
+else
+    git tag "$TAG_NAME"
+    logInfoMessage "Git tag $TAG_NAME created successfully in repository [$REPO_NAME]"
+
+    if ! git push origin "$TAG_NAME" > /dev/null 2>&1; then
+        logErrorMessage "Failed to push tag $TAG_NAME to origin"
+        exit 1
+    fi
+    logInfoMessage "Git tag $TAG_NAME pushed successfully to repository [$REPO_NAME]"
+fi
+
+cd ..
+logInfoMessage "____ End https://$GIT_URL ____"
+
