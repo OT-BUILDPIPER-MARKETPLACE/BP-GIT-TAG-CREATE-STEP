@@ -1,17 +1,10 @@
 #!/bin/bash
 
-# -------------------------------
-# Debug mode toggle
-# -------------------------------
 if [[ "$DEBUG_MODE" == "true" ]]; then
     set -x
 else
     set +x
 fi
-
-# -------------------------------
-# Import required functions
-# -------------------------------
 
 source /opt/buildpiper/shell-functions/functions.sh
 source /opt/buildpiper/shell-functions/log-functions.sh
@@ -19,9 +12,9 @@ source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 
-# Validate required environment variables
+
 if [[ -z "$WORKSPACE" || -z "$CODEBASE_DIR" ]]; then
-    echo "ERROR: WORKSPACE or CODEBASE_DIR environment variables not set!"
+    logErrorMessage "WORKSPACE or CODEBASE_DIR environment variables not set!"
     exit 1
 fi
 
@@ -30,16 +23,11 @@ CODEBASE_LOCATION="${WORKSPACE}/${CODEBASE_DIR}"
 logInfoMessage "Processing at path: [$CODEBASE_LOCATION]"
 sleep "$SLEEP_DURATION"
 
-# Change to codebase directory
 cd "$CODEBASE_LOCATION" || {
-    echo "ERROR: Cannot cd into $CODEBASE_LOCATION";
+    logErrorMessage "Cannot cd into $CODEBASE_LOCATION";
     exit 1;
 }
 
-
-# -------------------------------
-# Function to auto-detect .git folder and fetch credentials
-# -------------------------------
 getGitContext() {
     logInfoMessage "Detecting Git repository context..."
 
@@ -117,8 +105,15 @@ getGitContext
 # -------------------------------
 # Validate input
 # -------------------------------
-if [[ -z "$TAG_NAME" ]]; then
-    logErrorMessage "Please provide the TAG_NAME."
+if [[ -n "$TAG_NAME" ]]; then
+    logInfoMessage "Using user-provided TAG_NAME: $TAG_NAME"
+
+elif [[ -n "$DEPLOY_TAG" ]]; then
+    TAG_NAME="$DEPLOY_TAG"
+    logInfoMessage "TAG_NAME not provided, using DEPLOY_TAG: $TAG_NAME"
+
+else
+    logErrorMessage "Error: Neither TAG_NAME nor DEPLOY_TAG is provided."
     exit 1
 fi
 
