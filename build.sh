@@ -6,6 +6,9 @@ else
     set +x
 fi
 
+DEPLOY_TAG=29-2026-02-17-183508
+RESULT=${DEPLOY_TAG%-*}
+
 source /opt/buildpiper/shell-functions/functions.sh
 source /opt/buildpiper/shell-functions/log-functions.sh
 source /opt/buildpiper/shell-functions/str-functions.sh
@@ -108,9 +111,9 @@ getGitContext
 if [[ -n "$TAG_NAME" ]]; then
     logInfoMessage "Using user-provided TAG_NAME: $TAG_NAME"
 
-elif [[ -n "$DEPLOY_TAG" ]]; then
-    TAG_NAME="$DEPLOY_TAG"
-    logInfoMessage "TAG_NAME not provided, using DEPLOY_TAG: $TAG_NAME"
+elif [[ -n "$RESULT" ]]; then
+    TAG_NAME="$GIT_BRANCH-$RESULT"
+    logInfoMessage "TAG_NAME not provided, using BRANCH + BUILD NO + Date: $TAG_NAME"
 
 else
     logErrorMessage "Error: Neither TAG_NAME nor DEPLOY_TAG is provided."
