@@ -6,7 +6,6 @@ else
     set +x
 fi
 
-DEPLOY_TAG=29-2026-02-17-183508
 RESULT=${DEPLOY_TAG%-*}
 
 source /opt/buildpiper/shell-functions/functions.sh
