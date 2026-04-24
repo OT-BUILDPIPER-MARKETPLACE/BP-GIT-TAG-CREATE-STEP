@@ -23,6 +23,9 @@ fi
 CODEBASE_LOCATION="${WORKSPACE}/${CODEBASE_DIR}"
 
 logInfoMessage "Processing at path: [$CODEBASE_LOCATION]"
+add_event "DIRECTORY PROCESSING" "In Progress" \
+      "Processing directory" \
+      "Directory: ${CODEBASE_LOCATION}"
 sleep "$SLEEP_DURATION"
 
 cd "$CODEBASE_LOCATION" || {
@@ -104,6 +107,9 @@ getGitContext() {
 # Fetch Git credentials
 # -------------------------------
 getGitContext
+add_event "GIT CONTEXT FETCH" "Success" \
+      "Fetched git repository information" \
+      "Repo: ${REPO_NAME} Branch: ${GIT_BRANCH}"
 # -------------------------------
 # Validate input
 # -------------------------------
