@@ -23,15 +23,19 @@ fi
 CODEBASE_LOCATION="${WORKSPACE}/${CODEBASE_DIR}"
 
 logInfoMessage "Processing at path: [$CODEBASE_LOCATION]"
-add_event "DIRECTORY PROCESSING" "In Progress" \
-      "Processing directory" \
-      "Directory: ${CODEBASE_LOCATION}"
 sleep "$SLEEP_DURATION"
 
 cd "$CODEBASE_LOCATION" || {
     logErrorMessage "Cannot cd into $CODEBASE_LOCATION";
+    add_event "DIRECTORY PROCESSING" "Failed" \
+          "Failed to process directory" \
+          "Directory: ${CODEBASE_LOCATION}"
     exit 1;
 }
+
+add_event "DIRECTORY PROCESSING" "Success" \
+      "Successfully processed directory" \
+      "Directory: ${CODEBASE_LOCATION}"
 
 getGitContext() {
     logInfoMessage "Detecting Git repository context..."
@@ -106,10 +110,17 @@ getGitContext() {
 # -------------------------------
 # Fetch Git credentials
 # -------------------------------
-getGitContext
+if ! getGitContext; then
+    add_event "GIT CONTEXT FETCH" "Failed" \
+          "Failed to fetch git repository information" \
+          "Check logs for details"
+    exit 1
+fi
+
 add_event "GIT CONTEXT FETCH" "Success" \
       "Fetched git repository information" \
       "Repo: ${REPO_NAME} Branch: ${GIT_BRANCH}"
+
 # -------------------------------
 # Validate input
 # -------------------------------
@@ -122,8 +133,12 @@ elif [[ -n "$RESULT" ]]; then
 
 else
     logErrorMessage "Error: Neither TAG_NAME nor DEPLOY_TAG is provided."
+    add_event "TAG VALIDATION" "Failed" \
+          "Missing TAG_NAME and DEPLOY_TAG" \
+          "Please provide either TAG_NAME or DEPLOY_TAG environment variable"
     exit 1
 fi
+
 
 logInfoMessage "Repository: $REPO_NAME"
 logInfoMessage "Branch: $GIT_BRANCH"
@@ -133,14 +148,21 @@ logInfoMessage "Tag: $TAG_NAME"
 # -------------------------------
 if ! git checkout "$GIT_BRANCH" > /dev/null 2>&1; then
     logErrorMessage "Failed to checkout branch $GIT_BRANCH"
+    add_event "GIT TAG CREATE" "Failed" \
+          "Failed to checkout branch" \
+          "Branch: ${GIT_BRANCH}"
     exit 1
 fi
+
 
 # -------------------------------
 # Create tag if it doesn't exist
 # -------------------------------
 if git tag -l "$TAG_NAME" | grep -q "$TAG_NAME"; then
     logErrorMessage "Git tag $TAG_NAME already exists in repository [$REPO_NAME]"
+    add_event "GIT TAG CREATE" "Failed" \
+          "Git tag already exists" \
+          "Tag: ${TAG_NAME} Repo: ${REPO_NAME}"
     exit 1
 else
     git tag "$TAG_NAME"
@@ -148,9 +170,16 @@ else
 
     if ! git push origin "$TAG_NAME" > /dev/null 2>&1; then
         logErrorMessage "Failed to push tag $TAG_NAME to origin"
+        add_event "GIT TAG CREATE" "Failed" \
+              "Failed to push tag to origin" \
+              "Tag: ${TAG_NAME} Repo: ${REPO_NAME}"
         exit 1
     fi
     logInfoMessage "Git tag $TAG_NAME pushed successfully to repository [$REPO_NAME]"
+    add_event "GIT TAG CREATE" "Success" \
+          "Git tag created and pushed successfully" \
+          "Tag: ${TAG_NAME} Repo: ${REPO_NAME}"
 fi
+
 
 
