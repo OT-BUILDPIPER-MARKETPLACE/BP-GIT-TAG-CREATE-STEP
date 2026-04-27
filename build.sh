@@ -34,9 +34,10 @@ cd "$CODEBASE_LOCATION" || {
     exit 1;
 }
 
-add_event "DIRECTORY PROCESSING" "Success" \
+add_event "DIRECTORY PROCESSING" "Successful" \
       "Successfully processed directory" \
       "Directory: ${CODEBASE_LOCATION}"
+
 
 getGitContext() {
     logInfoMessage "Detecting Git repository context..."
@@ -118,9 +119,10 @@ if ! getGitContext; then
     exit 1
 fi
 
-add_event "GIT CONTEXT FETCH" "Success" \
+add_event "GIT CONTEXT FETCH" "Successful" \
       "Fetched git repository information" \
       "Repo: ${REPO_NAME} Branch: ${GIT_BRANCH}"
+
 
 # -------------------------------
 # Validate input
@@ -177,9 +179,10 @@ else
         exit 1
     fi
     logInfoMessage "Git tag $TAG_NAME pushed successfully to repository [$REPO_NAME]"
-    add_event "GIT TAG CREATE" "Success" \
+    add_event "GIT TAG CREATE" "Successful" \
           "Git tag created and pushed successfully" \
           "Tag: ${TAG_NAME} Repo: ${REPO_NAME}"
+
 fi
 
 
