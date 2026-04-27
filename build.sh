@@ -14,7 +14,6 @@ source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 
-export ACTIVITY_SUB_TASK_CODE="git_tag_create"
 
 if [[ -z "$WORKSPACE" || -z "$CODEBASE_DIR" ]]; then
     logErrorMessage "WORKSPACE or CODEBASE_DIR environment variables not set!"
