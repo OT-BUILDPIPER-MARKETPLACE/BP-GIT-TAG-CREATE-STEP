@@ -14,7 +14,6 @@ source /opt/buildpiper/shell-functions/str-functions.sh
 source /opt/buildpiper/shell-functions/file-functions.sh
 source /opt/buildpiper/shell-functions/aws-functions.sh
 
-
 if [[ -z "$WORKSPACE" || -z "$CODEBASE_DIR" ]]; then
     logErrorMessage "WORKSPACE or CODEBASE_DIR environment variables not set!"
     exit 1
@@ -36,7 +35,6 @@ cd "$CODEBASE_LOCATION" || {
 add_event "DIRECTORY PROCESSING" "Successful" \
       "Successfully processed directory" \
       "Directory: ${CODEBASE_LOCATION}"
-
 
 getGitContext() {
     logInfoMessage "Detecting Git repository context..."
@@ -122,7 +120,6 @@ add_event "GIT CONTEXT FETCH" "Successful" \
       "Fetched git repository information" \
       "Repo: ${REPO_NAME} Branch: ${GIT_BRANCH}"
 
-
 # -------------------------------
 # Validate input
 # -------------------------------
@@ -141,6 +138,9 @@ else
     exit 1
 fi
 
+add_event "TAG VALIDATION" "Successful" \
+      "Tag name resolved successfully" \
+      "Tag: ${TAG_NAME} Branch: ${GIT_BRANCH}"
 
 logInfoMessage "Repository: $REPO_NAME"
 logInfoMessage "Branch: $GIT_BRANCH"
@@ -150,12 +150,15 @@ logInfoMessage "Tag: $TAG_NAME"
 # -------------------------------
 if ! git checkout "$GIT_BRANCH" > /dev/null 2>&1; then
     logErrorMessage "Failed to checkout branch $GIT_BRANCH"
-    add_event "GIT TAG CREATE" "Failed" \
+    add_event "GIT CHECKOUT" "Failed" \
           "Failed to checkout branch" \
           "Branch: ${GIT_BRANCH}"
     exit 1
 fi
 
+add_event "GIT CHECKOUT" "Successful" \
+      "Branch checked out successfully" \
+      "Branch: ${GIT_BRANCH}"
 
 # -------------------------------
 # Create tag if it doesn't exist
@@ -183,6 +186,3 @@ else
           "Tag: ${TAG_NAME} Repo: ${REPO_NAME}"
 
 fi
-
-
-

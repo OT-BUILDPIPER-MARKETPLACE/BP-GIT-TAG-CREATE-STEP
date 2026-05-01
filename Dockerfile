@@ -8,13 +8,13 @@ FROM ubuntu:22.04
 # -------------------------------
 RUN apt-get update && \
     apt-get install -y \
-        jq \
-        git \
-        bash \
-        curl \
-        python3 \
-        python3-pip \
-        sudo && \
+    jq \
+    git \
+    bash \
+    curl \
+    python3 \
+    python3-pip \
+    sudo && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # -------------------------------
@@ -46,7 +46,9 @@ RUN chmod +x /home/buildpiper/build.sh
 # -------------------------------
 ENV CREDENTIAL_USERNAME=""
 ENV CREDENTIAL_PASSWORD=""
-ENV ACTIVITY_SUB_TASK_CODE="BP-GIT-TAG-CREATE-TASK"
+# ACTIVITY_SUB_TASK_CODE is intentionally NOT set here.
+# BuildPiper injects the correct value at runtime so that add_event
+# writes events to the path the UI expects to read from.
 ENV SLEEP_DURATION="0s"
 ENV TAG_NAME=""
 
